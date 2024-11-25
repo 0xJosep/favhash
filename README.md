@@ -2,157 +2,148 @@
 
 A command-line tool to find favicons, calculate their MMH3 hash, and perform Shodan searches based on the hash.
 
-![Favhash Banner](screenshots/banner.png)
-
 ## Features
 
 - 🔍 Advanced favicon detection methods:
   - HTML `<link>` tags parsing
   - Web app manifest checking
   - Common path detection
-  - Multiple format support (ICO, PNG)
-- 🔐 Shodan API integration
+  - Multiple format support (ICO, PNG, GIF, SVG)
+- 🔐 Shodan Integration (requires API key):
   - API key validation
   - Plan status checking
   - Search results with detailed output
-- 🔄 Comprehensive error handling
+- 🛠️ Enhanced Functionality:
+  - Custom User-Agent support
+  - Proxy support
+  - Configurable retries and timeouts
+  - Multiple output formats (text, JSON, YAML)
+  - Debug mode for detailed logging
+  - History tracking
+  - Result saving
 
 ## Installation
 
 ### Prerequisites
 
 - Go 1.16 or higher
+  ```bash
+  # Install Go on Ubuntu/Debian
+  sudo apt-get update
+  sudo apt-get install golang-go
 
-#### Install Go on Ubuntu/Debian
-```bash
-sudo apt-get update
-sudo apt-get install golang-go
-```
+  # Install Go on CentOS/RHEL
+  sudo yum install golang
 
-#### Install Go on CentOS/RHEL
-```bash
-sudo yum install golang
-```
-#### Install Go on macOS using Homebrew
-```bash
-brew install go
-```
+  # Install Go on macOS using Homebrew
+  brew install go
 
-#### Verify installation
-```bash
-go version
-```
-
-- Shodan API key (for search functionality)
+  # Verify installation
+  go version
+  ```
 
 ### Building from source
 
-#### Clone the repository
 ```bash
-git clone https://github.com/yourusername/favhash.git
+# Clone the repository
+git clone https://github.com/0xJosep/favhash.git
 cd favhash
-```
 
-#### Install dependencies
-```bash
-go mod tidy
-```
+# Install dependencies
+go mod init favhash
+go get github.com/PuerkitoBio/goquery
+go get github.com/fatih/color
+go get github.com/spaolacci/murmur3
+go get gopkg.in/yaml.v3
 
-#### Build the binary
-```bash
+# Build the binary
 go build
-```
-
-#### Optional: Install globally
-```
-go install
 ```
 
 ## Usage
 
-#### Show help
+### Basic Usage (No API Key Required)
+
 ```bash
-favhash -h
+# Calculate favicon hash only
+favhash -hash facebook.com
+
+# With debug mode
+favhash -hash -debug facebook.com
+
+# With custom User-Agent
+favhash -hash -ua "MyCustomUserAgent/1.0" facebook.com
+
+# With retry attempts
+favhash -hash -r 5 facebook.com
 ```
-#### Calculate favicon hash only
+
+### Advanced Usage (Requires Shodan API Key)
+
 ```bash
-favhash -hash example.com
-```
-#### Search Shodan with API key
-```bash
-favhash -k YOUR_SHODAN_KEY example.com
+# Full search with Shodan
+favhash -k YOUR_SHODAN_KEY facebook.com
+
+# JSON output
+favhash -k YOUR_SHODAN_KEY -o json facebook.com
+
+# Save results to file
+favhash -k YOUR_SHODAN_KEY -save facebook.com
+
+# With proxy
+favhash -k YOUR_SHODAN_KEY -proxy http://127.0.0.1:8080 facebook.com
 ```
 
 ### Command Line Options
 
-| Flag    | Description                           |
-|---------|---------------------------------------|
-| `-k`    | Shodan API key for searching         |
-| `-hash` | Only calculate hash without searching |
-| `-h`    | Show help message                    |
+| Flag           | Description                                    | API Key Required |
+|----------------|------------------------------------------------|-----------------|
+| `-hash`        | Only calculate hash without Shodan search       | No             |
+| `-debug`       | Enable debug output                            | No             |
+| `-k`           | Shodan API key                                 | Yes            |
+| `-o`           | Output format (text, json, yaml)               | Yes            |
+| `-t`           | Timeout for requests (e.g., 15s)               | No             |
+| `-r`           | Number of retries for failed requests          | No             |
+| `-delay`       | Delay between retries                          | No             |
+| `-proxy`       | Proxy URL                                      | No             |
+| `-ua`          | Custom User-Agent string                       | No             |
+| `-save`        | Save results to file                           | Yes            |
+| `-no-redirect` | Disable following redirects                    | No             |
+| `-no-history`  | Disable search history                         | No             |
 
 ## Example Output
 
+### Hash Only Mode
 ```
-[*] Target URL: https://example.com
+[*] Target URL: https://facebook.com
+[*] Found favicon at: https://static.xx.fbcdn.net/rsrc.php/yB/r/2sFJRNmJ5OP.ico
+[+] Favicon MMH3 hash: 872991029
+```
 
+### Full Search Mode (with API key)
+```
+[*] Target URL: https://facebook.com
 [*] Checking Shodan API key status...
-
 [+] API Key Information:
-    Plan: free
+    Plan: dev
     Query Credits: 100
     Scan Credits: 0
-
-[+] Found favicon at: https://example.com/favicon.ico
-[+] Favicon MMH3 hash: -123456789
-[+] Found 42 matches
-
-[+] Results:
-    IP: 192.0.2.1
-    Port: 443
-    Hostnames: host.example.com
-    Location: New York, United States
-    ---
+[+] Found favicon at: https://static.xx.fbcdn.net/rsrc.php/yB/r/2sFJRNmJ5OP.ico
+[+] Favicon MMH3 hash: 872991029
+[+] Found X matches
 ```
-
-## Features in Detail
-
-### Favicon Detection Methods
-
-1. HTML parsing
-   - Searches for `<link rel="shortcut icon">` tags
-   - Searches for `<link rel="icon">` tags
-   - Supports multiple icon formats
-
-2. Common Paths
-   - Checks standard favicon locations
-   - Supports both ICO and PNG formats
-   - Validates file existence and type
-
-### Shodan Integration
-
-- Validates API key before searching
-- Displays plan information and credits
-- Shows warnings for free API limitations
-- Provides full search results with IP, hostnames, and location
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- [Shodan](https://www.shodan.io/) for their excellent API
+- [Shodan](https://www.shodan.io/) for their API
 - The Go community for the amazing libraries
 
 ## Disclaimer
