@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -422,9 +423,63 @@ func (f *FaviconFinder) findFaviconInHTML(targetURL string) (string, error) {
 	return "", fmt.Errorf("no valid favicon found in HTML")
 }
 
-// Validate favicon URL
+func (f *FaviconFinder) checkCommonPaths(targetURL string) (string, error) {
+	f.debug("Checking common favicon paths")
+
+	parsedURL, err := url.Parse(targetURL)
+	if err != nil {
+		return "", err
+	}
+
+	// Prioritize ICO format first
+	priorityPaths := []string{
+		"/favicon.ico",
+		"/assets/favicon.ico",
+		"/static/favicon.ico",
+	}
+
+	// Check priority paths first
+	for _, path := range priorityPaths {
+		faviconURL := fmt.Sprintf("%s://%s%s", parsedURL.Scheme, parsedURL.Host, path)
+		f.debug("Trying priority path: %s", faviconURL)
+
+		if f.validateFavicon(faviconURL) {
+			return faviconURL, nil
+		}
+	}
+
+	// Only check other formats if priority paths fail
+	otherPaths := []string{
+		"/favicon.png",
+		"/assets/favicon.png",
+		"/static/favicon.png",
+	}
+
+	for _, path := range otherPaths {
+		faviconURL := fmt.Sprintf("%s://%s%s", parsedURL.Scheme, parsedURL.Host, path)
+		f.debug("Trying alternative path: %s", faviconURL)
+
+		if f.validateFavicon(faviconURL) {
+			return faviconURL, nil
+		}
+	}
+
+	return "", fmt.Errorf("no valid favicon found at common paths")
+}
+
+// Update the validateFavicon function
 func (f *FaviconFinder) validateFavicon(faviconURL string) bool {
-	resp, err := f.makeRequest(faviconURL)
+	// Use shorter timeout for validation
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "HEAD", faviconURL, nil)
+	if err != nil {
+		f.debug("Failed to create request: %v", err)
+		return false
+	}
+
+	resp, err := f.client.Do(req)
 	if err != nil {
 		f.debug("Favicon validation failed: %v", err)
 		return false
@@ -439,36 +494,12 @@ func (f *FaviconFinder) validateFavicon(faviconURL string) bool {
 	contentType := resp.Header.Get("Content-Type")
 	for _, validType := range validFaviconTypes {
 		if strings.HasPrefix(contentType, validType) {
-			contentLength := resp.ContentLength
-			if contentLength > 0 {
-				f.debug("Valid favicon found: type=%s, size=%d", contentType, contentLength)
-				return true
-			}
+			f.debug("Valid favicon found: type=%s", contentType)
+			return true
 		}
 	}
 
 	return false
-}
-
-// Check common paths for favicon
-func (f *FaviconFinder) checkCommonPaths(targetURL string) (string, error) {
-	f.debug("Checking common favicon paths")
-
-	parsedURL, err := url.Parse(targetURL)
-	if err != nil {
-		return "", err
-	}
-
-	for _, path := range commonFaviconPaths {
-		faviconURL := fmt.Sprintf("%s://%s%s", parsedURL.Scheme, parsedURL.Host, path)
-		f.debug("Trying: %s", faviconURL)
-
-		if f.validateFavicon(faviconURL) {
-			return faviconURL, nil
-		}
-	}
-
-	return "", fmt.Errorf("no valid favicon found at common paths")
 }
 
 // Resolve relative URLs
@@ -689,7 +720,7 @@ func main() {
 		help         = flag.Bool("h", false, "Show help")
 		debug        = flag.Bool("debug", false, "Enable debug output")
 		outputFormat = flag.String("o", "text", "Output format (text, json, yaml)")
-		timeout      = flag.Duration("t", 10*time.Second, "Timeout for requests")
+		timeout      = flag.Duration("t", 5*time.Second, "Timeout for requests")
 		retryCount   = flag.Int("r", 3, "Number of retries for failed requests")
 		retryDelay   = flag.Duration("delay", 2*time.Second, "Delay between retries")
 		proxyURL     = flag.String("proxy", "", "Proxy URL (e.g., http://127.0.0.1:8080)")
