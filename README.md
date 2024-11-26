@@ -69,29 +69,29 @@ go build
 favhash -hash example.com
 
 # With debug mode
-favhash -hash -debug facebook.com
+favhash -hash -debug example.com
 
 # With custom User-Agent
-favhash -hash -ua "MyCustomUserAgent/1.0" facebook.com
+favhash -hash -ua "MyCustomUserAgent/1.0" example.com
 
 # With retry attempts
-favhash -hash -r 5 facebook.com
+favhash -hash -r 5 example.com
 ```
 
 ### Advanced Usage (Requires Shodan API Key)
 
 ```bash
 # Full search with Shodan
-favhash -k YOUR_SHODAN_KEY facebook.com
+favhash -k YOUR_SHODAN_KEY example.com
 
 # JSON output
-favhash -k YOUR_SHODAN_KEY -o json facebook.com
+favhash -k YOUR_SHODAN_KEY -o json example.com
 
 # Save results to file
-favhash -k YOUR_SHODAN_KEY -save facebook.com
+favhash -k YOUR_SHODAN_KEY -save example.com
 
 # With proxy
-favhash -k YOUR_SHODAN_KEY -proxy http://127.0.0.1:8080 facebook.com
+favhash -k YOUR_SHODAN_KEY -proxy http://127.0.0.1:8080 example.com
 ```
 
 ### Command Line Options
