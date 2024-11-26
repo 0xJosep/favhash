@@ -66,7 +66,7 @@ go build
 
 ```bash
 # Calculate favicon hash only
-favhash -hash facebook.com
+favhash -hash example.com
 
 # With debug mode
 favhash -hash -debug facebook.com
