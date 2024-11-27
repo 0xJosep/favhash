@@ -259,58 +259,30 @@ func (f *FaviconFinder) debug(format string, args ...interface{}) {
 
 // Make HTTP request with retries and improved error handling
 func (f *FaviconFinder) makeRequest(reqURL string) (*http.Response, error) {
-	var lastErr error
-	for attempt := 0; attempt <= f.config.RetryCount; attempt++ {
-		if attempt > 0 {
-			f.debug("Retry attempt %d for URL: %s", attempt, reqURL)
-			time.Sleep(f.config.RetryDelay)
-		}
-
-		req, err := http.NewRequest("GET", reqURL, nil)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		// Add headers
-		userAgent := f.config.UserAgent
-		if userAgent == "" {
-			userAgent = userAgents[rand.Intn(len(userAgents))]
-		}
-		req.Header.Set("User-Agent", userAgent)
-		req.Header.Set("Accept", "*/*")
-		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-		req.Header.Set("Connection", "keep-alive")
-
-		start := time.Now()
-		resp, err := f.client.Do(req)
-		duration := time.Since(start)
-
-		if err != nil {
-			f.debug("Request failed: %v (took %v)", err, duration)
-			lastErr = err
-			continue
-		}
-
-		// Handle rate limiting
-		if resp.StatusCode == 429 {
-			if resp.Body != nil {
-				resp.Body.Close()
-			}
-			f.debug("Rate limit hit, waiting %v", rateLimitWait)
-			if f.apiStatus != nil {
-				f.apiStatus.RateLimitHit = true
-				f.saveAPIStatus()
-			}
-			time.Sleep(rateLimitWait)
-			continue
-		}
-
-		f.debug("Request completed: status=%d, took=%v", resp.StatusCode, duration)
-		return resp, nil
+	// Add www. if not present
+	if !strings.Contains(reqURL, "www.") && strings.Contains(reqURL, "://") {
+		parts := strings.Split(reqURL, "://")
+		reqURL = parts[0] + "://www." + parts[1]
 	}
 
-	return nil, fmt.Errorf("failed after %d attempts, last error: %v", f.config.RetryCount, lastErr)
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enhanced headers
+	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-User", "?1")
+
+	return f.client.Do(req)
 }
 
 // Check Shodan API key and get plan information
